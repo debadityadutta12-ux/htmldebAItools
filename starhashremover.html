@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Christmas Text Cleaner</title>
+    <style>
+        body {
+            background-color: #2e2e2e;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: url('https://www.transparenttextures.com/patterns/dark-wood.png');
+            overflow-y: auto;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: #3a3a3a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            border: 3px solid #d32f2f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            text-align: center;
+            color: #d32f2f;
+            margin-bottom: 15px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            background-color: #444;
+            color: #ffffff;
+            border: 1px solid #888;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 16px;
+            resize: vertical;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background-color: #388e3c;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2e7d32;
+        }
+        .output {
+            margin-top: 20px;
+            background-color: #5c5c5c;
+            color: #ffffff;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #aaaaaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎄 Christmas Text Cleaner 🎄</h1>
+        <textarea id="inputText" placeholder="Enter your text here..."></textarea>
+        <div class="button-group">
+            <button onclick="cleanText()">Clean Text</button>
+            <button onclick="copyText()">Copy Cleaned Text</button>
+        </div>
+        <div class="output" id="outputText"></div>
+    </div>
+    <div class="footer">
+        Made with 🎅 & ❤️ for the holiday season!
+    </div>
+
+    <script>
+        function cleanText() {
+            const input = document.getElementById('inputText').value;
+
+            // Remove # and *
+            let cleanedText = input.replace(/[#*]/g, '');
+
+            // Remove citations like [1] https://...
+            cleanedText = cleanedText.replace(/\[\d+\]\shttps?:\/\/\S+/g, '');
+
+            // Remove standalone numbers in square brackets like [12]
+            cleanedText = cleanedText.replace(/\[\d+\]/g, '');
+
+            // Output cleaned text
+            document.getElementById('outputText').textContent = cleanedText;
+        }
+
+        function copyText() {
+            const output = document.getElementById('outputText').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                alert("Cleaned text copied to clipboard! 🎉");
+            }).catch(err => {
+                alert("Failed to copy text. Please try again.");
+            });
+        }
+    </script>
+</body>
+</html>

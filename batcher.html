@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Batch Divider Tool</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #eee;
+      font-family: sans-serif;
+      padding: 1em;
+    }
+    textarea, select, input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 0.5em;
+      background: #222;
+      color: #eee;
+      border: 1px solid #555;
+      margin-bottom: 1em;
+    }
+    button {
+      background: #333;
+      color: #fff;
+      padding: 0.5em 1em;
+      margin-top: 0.5em;
+      border: none;
+      cursor: pointer;
+    }
+    .batch {
+      background: #1e1e1e;
+      padding: 0.5em;
+      margin-bottom: 1em;
+      border-left: 4px solid #444;
+    }
+    .advanced {
+      margin-top: 1em;
+      padding: 1em;
+      border: 1px solid #444;
+      background: #181818;
+    }
+    .hidden {
+      display: none;
+    }
+    label {
+      display: block;
+      margin: 0.4em 0 0.2em;
+    }
+  </style>
+</head>
+<body>
+  <h2>🗂️ Batch Divider Tool</h2>
+  <label>Paste Numbered List</label>
+  <textarea id="inputList" rows="10" placeholder="1. Apple&#10;2. Banana&#10;3. Cherry..."></textarea>
+
+  <label>Batch Mode</label>
+  <select id="batchMode">
+    <option value="size">Divide by batch size</option>
+    <option value="count">Divide into number of batches</option>
+  </select>
+
+  <label>Batch Size / Count</label>
+  <input type="number" id="batchNumber" min="1" value="3" />
+
+  <label><input type="checkbox" id="includeTitle"> Include batch title in copy</label>
+
+  <button onclick="generateBatches()">Generate Batches</button>
+  <button onclick="toggleAdvanced()">Show Advanced Options</button>
+
+  <div id="advanced" class="advanced hidden">
+    <label><input type="checkbox" id="shuffle"> Shuffle items</label>
+    <label><input type="checkbox" id="sort"> Sort items alphabetically</label>
+    <label><input type="checkbox" id="plainList"> Output as plain list (no numbers)</label>
+    <label><input type="checkbox" id="remember"> Remember input (localStorage)</label>
+
+    <label>Label Style</label>
+    <select id="labelStyle">
+      <option value="Batch">Batch</option>
+      <option value="Team">Team</option>
+      <option value="Group">Group</option>
+      <option value="Custom">Custom Label</option>
+    </select>
+
+    <input type="text" id="customLabel" class="hidden" placeholder="Enter custom label base" />
+
+    <label>Label Number Format</label>
+    <select id="labelFormat">
+      <option value="number">1, 2, 3...</option>
+      <option value="letter">A, B, C...</option>
+    </select>
+
+    <label>Theme</label>
+    <select id="themeSelect" onchange="switchTheme(this.value)">
+      <option value="dark" selected>Dark</option>
+      <option value="light">Light</option>
+    </select>
+  </div>
+
+  <div id="batches"></div>
+
+  <script>
+    const input = document.getElementById('inputList');
+    const advancedDiv = document.getElementById('advanced');
+    const customLabelInput = document.getElementById('customLabel');
+
+    function toggleAdvanced() {
+      advancedDiv.classList.toggle('hidden');
+    }
+
+    document.getElementById('labelStyle').addEventListener('change', function () {
+      customLabelInput.classList.toggle('hidden', this.value !== 'Custom');
+    });
+
+    function switchTheme(mode) {
+      if (mode === 'light') {
+        document.body.style.background = '#f5f5f5';
+        document.body.style.color = '#111';
+        document.querySelectorAll('textarea, input, select').forEach(el => {
+          el.style.background = '#fff';
+          el.style.color = '#000';
+          el.style.border = '1px solid #999';
+        });
+        document.querySelectorAll('.batch').forEach(b => b.style.background = '#eee');
+      } else {
+        location.reload(); // simplest way to reset to dark
+      }
+    }
+
+    function generateBatches() {
+      let lines = input.value.trim().split('\n').filter(l => l.trim() !== '');
+      if (lines.every(l => /^\d+\.\s+/.test(l))) {
+        if (!confirm("Detected numbered list. Remove numbers before batching?")) {
+          lines = lines.map(l => l.trim());
+        } else {
+          lines = lines.map(l => l.replace(/^\d+\.\s*/, '').trim());
+        }
+      }
+
+      if (document.getElementById('remember').checked) {
+        localStorage.setItem('batchInput', input.value);
+      }
+
+      if (document.getElementById('shuffle').checked) {
+        for (let i = lines.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [lines[i], lines[j]] = [lines[j], lines[i]];
+        }
+      }
+
+      if (document.getElementById('sort').checked) {
+        lines.sort((a, b) => a.localeCompare(b));
+      }
+
+      const batchMode = document.getElementById('batchMode').value;
+      const num = parseInt(document.getElementById('batchNumber').value);
+      const plain = document.getElementById('plainList').checked;
+
+      let batches = [];
+      if (batchMode === 'size') {
+        for (let i = 0; i < lines.length; i += num) {
+          batches.push(lines.slice(i, i + num));
+        }
+      } else {
+        const perBatch = Math.ceil(lines.length / num);
+        for (let i = 0; i < lines.length; i += perBatch) {
+          batches.push(lines.slice(i, i + perBatch));
+        }
+      }
+
+      const container = document.getElementById('batches');
+      container.innerHTML = '';
+      const baseLabel = document.getElementById('labelStyle').value === 'Custom'
+        ? customLabelInput.value || 'Batch'
+        : document.getElementById('labelStyle').value;
+      const labelFormat = document.getElementById('labelFormat').value;
+
+      batches.forEach((batch, index) => {
+        let label = baseLabel + ' ';
+        label += (labelFormat === 'number') ? (index + 1) : String.fromCharCode(65 + index);
+
+        const div = document.createElement('div');
+        div.className = 'batch';
+
+        const list = batch.map((item, i) => {
+          return plain ? item : `${i + 1}. ${item}`;
+        }).join('\n');
+
+        const pre = document.createElement('pre');
+        pre.textContent = list;
+        div.appendChild(pre);
+
+        const btn = document.createElement('button');
+        btn.textContent = 'Copy';
+        btn.onclick = () => {
+          let text = list;
+          if (document.getElementById('includeTitle').checked) {
+            text = `${label}\n${text}`;
+          }
+          navigator.clipboard.writeText(text);
+          btn.textContent = 'Copied!';
+          setTimeout(() => btn.textContent = 'Copy', 1000);
+        };
+
+        const title = document.createElement('strong');
+        title.textContent = label;
+        div.insertBefore(title, pre);
+        div.appendChild(btn);
+        container.appendChild(div);
+      });
+    }
+
+    window.onload = () => {
+      const saved = localStorage.getItem('batchInput');
+      if (saved) input.value = saved;
+    };
+  </script>
+</body>
+</html>

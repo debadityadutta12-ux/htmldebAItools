@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Persistent Clipboard</title>
+  <style>
+    body {
+      background: #1e1e1e;
+      color: #f0f0f0;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 80px;
+      background: #2a2a2a;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      margin-bottom: 10px;
+      resize: none;
+    }
+    button {
+      background: #444;
+      color: #fff;
+      padding: 8px 16px;
+      border: none;
+      margin-right: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #clipboardModal {
+      position: fixed;
+      top: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80%;
+      max-width: 700px;
+      background: #2b2b2b;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      z-index: 9999;
+      display: none;
+    }
+    .entry {
+      background: #3a3a3a;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .entry.pinned {
+      border-left: 4px solid gold;
+    }
+    .entry-content {
+      flex: 1;
+      margin-right: 10px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .entry-buttons button {
+      margin-left: 5px;
+    }
+#entries {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #444;
+  padding: 5px;
+  border-radius: 6px;
+}
+
+    #search {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      background: #1c1c1c;
+      color: #fff;
+      border: 1px solid #555;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Paste to Clipboard</h2>
+<textarea id="clipInput" placeholder="Paste text here..."></textarea>
+<br>
+<button onclick="saveEntry()">Add to Clipboard</button>
+<button onclick="toggleModal()">Show Clipboard</button>
+
+<div id="clipboardModal">
+  <input type="text" id="search" placeholder="Search entries..." oninput="renderClipboard()" />
+  <div id="entries"></div>
+  <button onclick="toggleModal()">Close</button>
+</div>
+
+<script>
+  let clipboard = JSON.parse(localStorage.getItem("customClipboard") || "[]");
+
+  function saveToStorage() {
+    localStorage.setItem("customClipboard", JSON.stringify(clipboard));
+  }
+
+  function saveEntry() {
+    const input = document.getElementById("clipInput");
+    const text = input.value.trim();
+    if (!text) return;
+    clipboard.push({ text, pinned: false });
+    input.value = "";
+    saveToStorage();
+  }
+
+  function toggleModal() {
+    const modal = document.getElementById("clipboardModal");
+    modal.style.display = modal.style.display === "none" ? "block" : "none";
+    renderClipboard();
+  }
+
+  function renderClipboard() {
+    const search = document.getElementById("search").value.toLowerCase();
+    const container = document.getElementById("entries");
+    container.innerHTML = "";
+
+    const sorted = [...clipboard].sort((a, b) => b.pinned - a.pinned);
+    sorted.forEach((entry, index) => {
+      if (!entry.text.toLowerCase().includes(search)) return;
+
+      const div = document.createElement("div");
+      div.className = "entry" + (entry.pinned ? " pinned" : "");
+
+      const content = document.createElement("div");
+      content.className = "entry-content";
+      content.textContent = entry.text;
+
+      const buttons = document.createElement("div");
+      buttons.className = "entry-buttons";
+
+      const copyBtn = document.createElement("button");
+      copyBtn.textContent = "Copy";
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(entry.text);
+      };
+
+      const pinBtn = document.createElement("button");
+      pinBtn.textContent = entry.pinned ? "Unpin" : "Pin";
+      pinBtn.onclick = () => {
+        entry.pinned = !entry.pinned;
+        saveToStorage();
+        renderClipboard();
+      };
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "❌";
+      deleteBtn.onclick = () => {
+        const i = clipboard.findIndex(e => e.text === entry.text);
+        if (i !== -1) {
+          clipboard.splice(i, 1);
+          saveToStorage();
+          renderClipboard();
+        }
+      };
+
+      buttons.appendChild(copyBtn);
+      buttons.appendChild(pinBtn);
+      buttons.appendChild(deleteBtn);
+      div.appendChild(content);
+      div.appendChild(buttons);
+      container.appendChild(div);
+    });
+  }
+
+  window.onload = () => {
+    renderClipboard();
+  };
+</script>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HTML Code to File</title>
+  <style>
+    body {
+      background: #121212;
+      color: #e0e0e0;
+      font-family: monospace;
+      padding: 20px;
+    }
+    textarea, input {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+    }
+    button {
+      padding: 10px 20px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>HTML to Downloadable File</h2>
+  <label>Filename (without .html):</label>
+  <input type="text" id="filename" placeholder="example">
+
+  <label>Your HTML Code:</label>
+  <textarea id="htmlContent" rows="15" placeholder="Paste your HTML code here..."></textarea>
+
+  <button onclick="downloadHTML()">Download as .html</button>
+
+  <script>
+    function downloadHTML() {
+      const code = document.getElementById("htmlContent").value;
+      const fileName = document.getElementById("filename").value || "untitled";
+      const blob = new Blob([code], { type: "text/html" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName + ".html";
+      link.click();
+    }
+  </script>
+
+</body>
+</html>

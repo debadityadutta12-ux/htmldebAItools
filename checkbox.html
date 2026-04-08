@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Checklist Manager</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    textarea, input[type="text"], button {
+      background-color: #1e1e1e;
+      color: #fff;
+      border: 1px solid #333;
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .list-container {
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 20px;
+    }
+    .list-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+    .checkbox-item {
+      margin: 5px 0;
+    }
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .buttons button {
+      flex: 1;
+      cursor: pointer;
+    }
+    .edit-area {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Create a New Checklist</h2>
+  <input type="text" id="listName" placeholder="Enter list name" />
+  <textarea id="itemInput" rows="5" placeholder="Enter items (one per line)"></textarea>
+  <button onclick="createList()">Add List</button>
+
+  <div id="lists"></div>
+
+  <script>
+    const listsContainer = document.getElementById("lists");
+
+    function getStoredLists() {
+      const all = localStorage.getItem("checklists");
+      return all ? JSON.parse(all) : {};
+    }
+
+    function saveLists(data) {
+      localStorage.setItem("checklists", JSON.stringify(data));
+    }
+
+    function createList() {
+      const name = document.getElementById("listName").value.trim();
+      const rawItems = document.getElementById("itemInput").value.trim();
+      if (!name || !rawItems) {
+        alert("Please enter both list name and items.");
+        return;
+      }
+
+      const items = rawItems.split("\n").map(item => item.trim()).filter(item => item);
+      const id = "list_" + Date.now();
+      const listData = getStoredLists();
+      listData[id] = { name, items, checked: [] };
+      saveLists(listData);
+
+      document.getElementById("listName").value = "";
+      document.getElementById("itemInput").value = "";
+
+      renderLists();
+    }
+
+    function toggleCheckbox(listId, index, checked) {
+      const lists = getStoredLists();
+      const targetList = lists[listId];
+      if (checked) {
+        if (!targetList.checked.includes(index)) targetList.checked.push(index);
+      } else {
+        targetList.checked = targetList.checked.filter(i => i !== index);
+      }
+      saveLists(lists);
+    }
+
+    function downloadChecked(listId) {
+      const lists = getStoredLists();
+      const { name, items, checked } = lists[listId];
+      const selectedItems = checked.map(i => items[i]);
+      const blob = new Blob([selectedItems.join("\n")], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${name}_checked.txt`;
+      a.click();
+    }
+
+    function deleteList(listId) {
+      const lists = getStoredLists();
+      if (confirm("Are you sure you want to delete this list?")) {
+        delete lists[listId];
+        saveLists(lists);
+        renderLists();
+      }
+    }
+
+    function resetCheckboxes(listId) {
+      const lists = getStoredLists();
+      lists[listId].checked = [];
+      saveLists(lists);
+      renderLists();
+    }
+
+    function editList(listId) {
+      const lists = getStoredLists();
+      const list = lists[listId];
+      const newName = prompt("Edit list name:", list.name);
+      if (newName === null) return;
+
+      const newItems = prompt("Edit items (one per line):", list.items.join("\n"));
+      if (newItems === null) return;
+
+      const itemList = newItems.split("\n").map(i => i.trim()).filter(i => i);
+      const newChecked = list.checked.filter(i => i < itemList.length);
+
+      lists[listId] = { name: newName.trim(), items: itemList, checked: newChecked };
+      saveLists(lists);
+      renderLists();
+    }
+
+    function renderLists() {
+      const lists = getStoredLists();
+      listsContainer.innerHTML = "";
+
+      for (const [id, { name, items, checked }] of Object.entries(lists)) {
+        const div = document.createElement("div");
+        div.className = "list-container";
+
+        const title = document.createElement("div");
+        title.className = "list-title";
+        title.textContent = name;
+        div.appendChild(title);
+
+        items.forEach((item, index) => {
+          const label = document.createElement("label");
+          label.className = "checkbox-item";
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = checked.includes(index);
+          checkbox.onchange = () => toggleCheckbox(id, index, checkbox.checked);
+          label.appendChild(checkbox);
+          label.append(" " + item);
+          div.appendChild(label);
+          div.appendChild(document.createElement("br"));
+        });
+
+        const btns = document.createElement("div");
+        btns.className = "buttons";
+
+        const downloadBtn = document.createElement("button");
+        downloadBtn.textContent = "Download Selected";
+        downloadBtn.onclick = () => downloadChecked(id);
+
+        const resetBtn = document.createElement("button");
+        resetBtn.textContent = "Reset Ticks";
+        resetBtn.onclick = () => resetCheckboxes(id);
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Delete List";
+        deleteBtn.onclick = () => deleteList(id);
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Edit List";
+        editBtn.onclick = () => editList(id);
+
+        btns.append(downloadBtn, resetBtn, editBtn, deleteBtn);
+        div.appendChild(btns);
+        listsContainer.appendChild(div);
+      }
+    }
+
+    renderLists();
+  </script>
+
+</body>
+</html>

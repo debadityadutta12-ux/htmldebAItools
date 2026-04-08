@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Quoted & Hashtagged List Interface</title>
+  <style>
+    body {
+      background-color: #0f0f0f;
+      color: #f0f0f0;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 2rem;
+    }
+    input[type="text"], button, textarea {
+      padding: 0.5rem;
+      margin: 0.3rem 0.4rem 0.3rem 0;
+      background: linear-gradient(145deg, #1e1e1e, #292929);
+      border: 1px solid #444;
+      color: #ffffff;
+      border-radius: 6px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      resize: vertical;
+    }
+    input[type="text"]:focus, textarea:focus {
+      border-color: #00ffcc;
+      box-shadow: 0 0 5px #00ffcc88;
+    }
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #3a3aff, #009dff);
+      color: #fff;
+      border: none;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #5c5cff, #00cfff);
+      transform: scale(1.05);
+    }
+    label {
+      margin-left: 0.5rem;
+      color: #b0fffb;
+      font-size: 0.9rem;
+    }
+    .list-dropdown {
+      max-height: 120px;
+      overflow-y: auto;
+      background-color: #1e1e2e;
+      border: 1px solid #555;
+      margin: 0.3rem 0;
+      width: 260px;
+      border-radius: 6px;
+    }
+    .list-dropdown div {
+      padding: 0.4rem;
+      cursor: pointer;
+      color: #ffffff;
+      border-bottom: 1px solid #333;
+    }
+    .list-dropdown div:hover {
+      background-color: #3a3aff;
+      color: #fff;
+    }
+    .item-group {
+      margin-bottom: 1rem;
+      background: #191919;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #111;
+    }
+    .output {
+      margin-top: 1rem;
+      font-size: 1.1rem;
+      background-color: #222233;
+      color: #00ffe1;
+      padding: 1rem;
+      border-radius: 10px;
+      font-weight: bold;
+      box-shadow: 0 0 10px #00c8ff66;
+    }
+    h3 {
+      color: #00ffe0;
+    }
+    #bulkInputArea {
+      display: none;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h3>Enter Items</h3>
+  <div id="itemsContainer"></div>
+
+  <button onclick="addItem()">+ Add Item</button>
+  <button onclick="toggleBulkInput()">+ Bulk Add</button>
+
+  <div id="bulkInputArea">
+    <textarea id="bulkInput" placeholder="word\nitem1, item2, item3\n\nnextWord\n..."></textarea>
+    <br>
+    <button onclick="submitBulk()">Submit Bulk Items</button>
+  </div>
+
+  <div class="output" id="output">"item1" "item2" "item3"</div>
+  <button onclick="copyToClipboard()">Copy</button>
+
+  <script>
+    let itemCount = 0;
+    let lists = {};
+
+    function addItem(value = '', quote = true, hashtag = false, list = []) {
+      itemCount++;
+      const container = document.getElementById('itemsContainer');
+
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'item-group';
+      itemDiv.id = `item${itemCount}`;
+
+      itemDiv.innerHTML = `
+        <input type="text" id="input${itemCount}" placeholder="Item ${itemCount}" value="${value}" oninput="updateOutput()">
+        <label><input type="checkbox" id="quote${itemCount}" ${quote ? 'checked' : ''} onchange="updateOutput()"> Use Quotes</label>
+        <label><input type="checkbox" id="hashtag${itemCount}" ${hashtag ? 'checked' : ''} onchange="updateOutput()"> Use Hashtag</label>
+        <button onclick="toggleList(${itemCount})">+ List</button>
+        <div id="listArea${itemCount}" class="list-dropdown" style="display:none;"></div>
+      `;
+
+      container.appendChild(itemDiv);
+      lists[itemCount] = list;
+      renderList(itemCount);
+      updateOutput();
+    }
+
+    function getFormatted(value, useQuotes, useHashtag) {
+      if (useHashtag && value) value = `#${value}`;
+      return useQuotes && value ? `"${value}"` : value;
+    }
+
+    function updateOutput() {
+      let output = '';
+      for (let i = 1; i <= itemCount; i++) {
+        const input = document.getElementById(`input${i}`);
+        const quote = document.getElementById(`quote${i}`);
+        const hashtag = document.getElementById(`hashtag${i}`);
+        if (input) {
+          const val = input.value.trim();
+          output += getFormatted(val, quote.checked, hashtag.checked) + ' ';
+        }
+      }
+      document.getElementById('output').innerText = output.trim();
+    }
+
+    function toggleList(index) {
+      const listArea = document.getElementById(`listArea${index}`);
+      const newItems = prompt(`Enter list items for Item ${index}, separated by commas:`);
+
+      if (newItems) {
+        const items = newItems.split(',').map(i => i.trim()).filter(i => i);
+        lists[index] = [...lists[index], ...items];
+        renderList(index);
+        listArea.style.display = 'block';
+      } else if (listArea.style.display !== 'none') {
+        listArea.style.display = 'none';
+      }
+    }
+
+    function renderList(index) {
+      const listArea = document.getElementById(`listArea${index}`);
+      listArea.innerHTML = '';
+      if (!lists[index] || lists[index].length === 0) {
+        listArea.style.display = 'none';
+        return;
+      }
+      lists[index].forEach(item => {
+        const div = document.createElement('div');
+        div.textContent = item;
+        div.onclick = () => {
+          document.getElementById(`input${index}`).value = item;
+          updateOutput();
+        };
+        listArea.appendChild(div);
+      });
+      listArea.style.display = 'block';
+    }
+
+    function copyToClipboard() {
+      const text = document.getElementById('output').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+
+    function toggleBulkInput() {
+      const area = document.getElementById('bulkInputArea');
+      area.style.display = area.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function submitBulk() {
+      const input = document.getElementById('bulkInput').value.trim();
+      if (!input) return;
+
+      const blocks = input.split(/\n\s*\n/); // blank line separation
+
+      blocks.forEach(block => {
+        const lines = block.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length >= 1) {
+          const mainItem = lines[0];
+          const listLine = lines[1] || '';
+          const listItems = listLine.split(',').map(i => i.trim()).filter(i => i);
+          addItem(mainItem, true, false, listItems);
+        }
+      });
+
+      document.getElementById('bulkInput').value = '';
+      document.getElementById('bulkInputArea').style.display = 'none';
+    }
+
+    // Start with 3 items
+    addItem();
+    addItem();
+    addItem();
+  </script>
+
+</body>
+</html>
