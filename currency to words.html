@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body{background:#121212;color:#eee;font-family:sans-serif}
+input,button{padding:8px;margin:5px;background:#1e1e1e;color:#fff;border:1px solid #444}
+button:hover{background:#333}
+</style>
+</head>
+<body>
+
+<input id="num" placeholder="Enter number (₹ optional)">
+<label><input type="checkbox" id="cur"> Currency</label>
+<button onclick="run()">Convert</button>
+<button onclick="copyText()">Copy</button>
+
+<p id="out"></p>
+
+<script>
+const ones=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+const tens=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+const scales=[[1e15,"Padma"],[1e13,"Neel"],[1e11,"Kharab"],[1e9,"Arab"],[1e7,"Crore"],[1e5,"Lakh"],[1e3,"Thousand"]];
+
+function sub100(n){return n<20?ones[n]:tens[Math.floor(n/10)]+(n%10?"-"+ones[n%10]:"");}
+function sub1000(n){return (Math.floor(n/100)?ones[Math.floor(n/100)]+" Hundred":"")+(n%100?(n>=100?" ":"")+sub100(n%100):"");}
+
+function toWords(n){
+ if(n===0)return"Zero";
+ let neg=n<0;if(neg)n=-n;
+ let res="";
+ for(let [v,l] of scales){
+  let q=Math.floor(n/v);
+  if(q){res+=toWords(q)+" "+l+" ";n%=v;}
+ }
+ if(n){if(res)res+="and ";res+=sub1000(n);}
+ return (neg?"Minus ":"")+res.trim();
+}
+
+function run(){
+ let raw=document.getElementById("num").value;
+ let cleaned=raw.replace(/[^\d.-]/g,""); // strips ₹ too
+ let n=Math.round(parseFloat(cleaned)||0);
+
+ if(Math.abs(n)>=1e16){
+  out.textContent="Input exceeds the supported maximum of 999 Padma.";
+  return;
+ }
+
+ let w=toWords(n);
+ if(cur.checked) w="₹ "+w+" Only";
+ out.textContent=w;
+}
+
+function copyText(){
+ navigator.clipboard.writeText(document.getElementById("out").textContent);
+}
+</script>
+
+</body>
+</html>
